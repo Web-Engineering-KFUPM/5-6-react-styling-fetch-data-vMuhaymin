@@ -322,19 +322,57 @@ import UserList from './components/UserList'
 import SearchBar from './components/SearchBar'
 import UserModal from './components/UserModal'
 
+
+
 function App() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState([]);
+  const [filteredUsers, setFilteredUsers] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
 
   useEffect(() => {
-    {/*API fetch logic*/}
+   const fetchUsers = async () => {
+     setLoading(true)
+     setError(null)
+     try {
+       const response = await fetch('https://jsonplaceholder.typicode.com/users')
+       if (!response.ok) throw new Error(`HTTP ${response.status}`)
+       const data = await response.json()
+       setUsers(data)
+       setFilteredUsers(data)
+     } catch (err) {
+       setError(err.message || 'Failed to fetch users')
+     } finally {
+       setLoading(false)
+     }
+   }
+   fetchUsers()
+ }, [])
 
-
-  }, [])
+ useEffect(() => {
+   if (!searchTerm.trim()) {
+     setFilteredUsers(users)
+     return
+   }
+   const filtered = users.filter(u =>
+     u.name.toLowerCase().includes(searchTerm.toLowerCase())
+   )
+   setFilteredUsers(filtered)
+ }, [searchTerm, users])
+ 
 
   const handleUserClick = (user) => {
+   setSelectedUser(user)
+   setShowModal(true)
   }
 
   const handleCloseModal = () => {
+   setShowModal(false)
+   setSelectedUser(null)
   }
 
   return (
@@ -347,13 +385,26 @@ function App() {
       </header>
 
       <Container className="mb-4">
-        <SearchBar />
+        <SearchBar
+            searchTerm={searchTerm}
+            onSearchChange={setSearchTerm}
+        />
 
         {/* {loading && <Spinner ... />} */}
         {/* {error && <Alert ...>{error}</Alert>} */}
-        {/* <UserList users={filteredUsers} onUserClick={handleUserClick} /> */}
+        {loading && <Spinner animation="border" role="status" className="my-3" />}
+        {error && <Alert variant="danger" className="my-3">{error}</Alert>}
 
-        <UserModal />
+        {/* <UserList users={filteredUsers} onUserClick={handleUserClick} /> */}
+        {!loading && !error && (
+          <UserList users={filteredUsers} onUserClick={handleUserClick} />
+        )}
+
+        <UserModal           
+            show={showModal}
+            user={selectedUser}
+            onHide={handleCloseModal}
+          />
       </Container>
 
       <footer className=" bg-light py-4 mt-5">
